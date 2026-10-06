@@ -1,10 +1,9 @@
 name: Live end-to-end
 
-# Binds a real platform identity from the browser UI to a mined transaction:
-# real OAuth sign-in, real notary, in-browser proving, the real libID contracts
-# on a local anvil with Google's keys rotated in by the keeper, and the
-# indexer. Not a required check: it depends on the platforms, their test
-# accounts and the network.
+# Proves a real platform identity from the browser UI through the CCDP
+# ceremony: real OAuth sign-in, the real notary and Bridge, and in-browser
+# proving. No chain. Not a required check: it depends on the platforms, their
+# test accounts and the network.
 #
 # Every third-party action is pinned by commit SHA, with the tag in a comment.
 
@@ -20,7 +19,7 @@ on:
 # One run per pull request, a newer push replacing an older run; scheduled
 # and dispatched runs queue in a group of their own. Runs of different groups
 # overlap on the platforms' test accounts, which hold concurrent sign-ins:
-# each run binds on its own chain, and a rate-limited login backs off.
+# each run has its own notary and Bridge, and a rate-limited login backs off.
 concurrency:
   group: live-e2e-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'main' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -29,8 +28,8 @@ permissions:
   contents: read
 
 jobs:
-  bind:
-    name: GitHub and X bindings (live)
+  ceremony:
+    name: GitHub and X ceremonies (live)
     # A pull request from a fork or from Dependabot gets no secrets, so it
     # does not run.
     if: >-
@@ -39,7 +38,7 @@ jobs:
       github.actor != 'dependabot[bot]')
     runs-on: ubuntu-latest
     # The test step's budget plus setup, the secret scan and the upload.
-    timeout-minutes: 55
+    timeout-minutes: 50
     env:
       # A missing secret fails the run instead of skipping the test.
       LIBID_REQUIRE_LIVE: "1"
@@ -55,13 +54,13 @@ jobs:
 
       # Google is left out: it challenges a saved session arriving from a
       # runner's address ("Verify it's you"), which no automation passes. Its
-      # test still runs locally, and the stack rotates no Google keys here.
+      # test still runs locally.
       # Its own timeout, so a run that hangs still reaches the steps below:
-      # the stack's 15-minute start, two tests of 12 minutes, and 2 minutes
+      # the stack's 10-minute start, two tests of 12 minutes, and 2 minutes
       # to stop the stack (playwright.live.config.ts), with room to spare.
-      - name: Bind GitHub and X identities end to end
+      - name: Prove GitHub and X identities end to end
         id: test
-        timeout-minutes: 45
+        timeout-minutes: 40
         env:
           LIBID_LIVE_PLATFORMS: github,x
           LIBID_STACK_LOGS: ${{ runner.temp }}/stack.log
