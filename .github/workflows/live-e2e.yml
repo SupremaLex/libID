@@ -51,7 +51,7 @@ jobs:
       - uses: ./.github/actions/setup-ts
 
       - name: Install Chromium
-        run: pnpm -C ts --filter @libid/bind exec playwright install --with-deps chromium
+        run: pnpm -C ts --filter @libid/ceremony-live exec playwright install --with-deps chromium
 
       # Google is left out: it challenges a saved session arriving from a
       # runner's address ("Verify it's you"), which no automation passes. Its
@@ -73,7 +73,7 @@ jobs:
           # libid-server-rs' ceremony-tests (branch feat/live-ceremony-tests,
           # libid-server-rs PR #12).
           X_TEST_ALICE_COOKIES: ${{ secrets.X_TEST_ALICE_COOKIES }}
-        run: pnpm -C ts/apps/bind test:live
+        run: pnpm -C ts/apps/ceremony-live test:live
 
       # The artifact is public. Screenshots, Playwright's error notes and the
       # stack's log go up only when the scan finds none of the test accounts'
@@ -94,10 +94,10 @@ jobs:
         # A stack the test step left running stops first, so nothing writes to
         # the log after it is scanned; what goes up is the copy scanned.
         run: |
-          docker compose ls -q --all --filter name=libid-bind |
+          docker compose ls -q --all --filter name=libid-ceremony-live |
             xargs -r -I{} docker compose -p {} down --volumes
           if [ -f "$RUNNER_TEMP/stack.log" ]; then cp "$RUNNER_TEMP/stack.log" "$RUNNER_TEMP/stack-scanned.log"; fi
-          node ts/apps/bind/e2e/scan-secrets.ts ts/apps/bind/test-results "$RUNNER_TEMP/stack-scanned.log"
+          node ts/apps/ceremony-live/e2e/scan-secrets.ts ts/apps/ceremony-live/test-results "$RUNNER_TEMP/stack-scanned.log"
 
       - name: Keep the screenshots and container logs
         if: ${{ !cancelled() && steps.scan.outcome == 'success' }}
@@ -105,8 +105,8 @@ jobs:
         with:
           name: live-e2e
           path: |
-            ts/apps/bind/test-results/**/*.png
-            ts/apps/bind/test-results/**/*.md
+            ts/apps/ceremony-live/test-results/**/*.png
+            ts/apps/ceremony-live/test-results/**/*.md
             ${{ runner.temp }}/stack-scanned.log
           retention-days: 14
           if-no-files-found: ignore

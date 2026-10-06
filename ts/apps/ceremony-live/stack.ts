@@ -34,7 +34,7 @@ import {
 
 const root = fileURLToPath(new URL('.', import.meta.url))
 const cache = join(root, '.cache')
-const project = `libid-bind-${createHash('sha256').update(root).digest('hex').slice(0, 12)}`
+const project = `libid-ceremony-live-${createHash('sha256').update(root).digest('hex').slice(0, 12)}`
 const composeArgs = ['compose', '-p', project, '-f', join(root, 'compose.yaml')]
 
 // Docker publishes on 127.0.0.1; the browser reaches Bridge as localhost.

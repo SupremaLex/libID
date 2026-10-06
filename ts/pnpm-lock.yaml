@@ -36,7 +36,7 @@ importers:
         specifier: ^1.86.0
         version: 1.86.0
 
-  apps/bind:
+  apps/ceremony-live:
     dependencies:
       '@libid/ceremony':
         specifier: workspace:^
