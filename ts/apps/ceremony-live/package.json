@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "An application that binds a platform identity on a local chain, end to end.",
+  "description": "An application that runs the CCDP ceremony for a platform identity in the browser, live.",
   "license": "(MIT OR Apache-2.0)",
   "scripts": {
     "dev": "pnpm build:deps && node stack.ts --app",
@@ -15,10 +15,9 @@
   },
   "dependencies": {
     "@libid/ceremony": "workspace:^",
-    "@libid/contracts": "0.15.1",
     "@libid/ledger": "workspace:^",
     "@libid/popup": "workspace:^",
-    "viem": "^2.48.11"
+    "@noble/hashes": "^2.4.0"
   },
   "devDependencies": {
     "@playwright/test": "catalog:",

@@ -1,20 +1,6 @@
-# Started by stack.ts after building CCDP. A local chain with the real libID
-# contracts, the services a ceremony needs, and an indexer for the UI to read.
+# Started by stack.ts after building CCDP: the notary, Bridge and the CCDP
+# static server, everything a ceremony needs. No chain.
 services:
-  anvil:
-    # foundry:v1.7.1 by index digest. A block every second keeps block time
-    # at the wall clock, as on a live chain: proofs carry real notary
-    # timestamps, and the verifiers refuse one dated ahead of the block.
-    image: ghcr.io/foundry-rs/foundry@sha256:8347b728d5d393dac1c018691b36f506d23b9dcd78341d40ea0fcb11c3a19cdd
-    entrypoint: ["anvil", "--host", "0.0.0.0", "--chain-id", "31337", "--block-time", "1", "--silent"]
-    ports:
-      - "127.0.0.1:4688:8545"
-    healthcheck:
-      test: ["CMD", "cast", "block-number", "--rpc-url", "http://127.0.0.1:8545"]
-      interval: 1s
-      timeout: 2s
-      retries: 30
-
   notary:
     # notary:0.4.0 by index digest.
     image: ghcr.io/libid-org/notary@sha256:64716b57a89b6b9e5f97f8908572f4f8901b16ba4a0d442a44129020a70f5878
@@ -25,10 +11,8 @@ services:
       NOTARY_MAX_SESSIONS_PER_IP: "0"
       NOTARY_PER_IP_UPGRADES: ""
       NOTARY_PER_IP_BYTES: ""
-      # The MPC-TLS wire port, for the keeper's reading of Google's keys.
-      NOTARY_PORT: "7047"
-      # anvil account #1, the signer chain-configurations' local-dev network
-      # trusts. A public test key, never a production notary identity.
+      # A public test key, never a production notary identity. Nothing here
+      # verifies the attestations it signs on a chain.
       SIGNING_KEY: "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
     ports:
       - "127.0.0.1:4687:7048"
@@ -66,68 +50,6 @@ services:
       - .cache/ccdp/public:/home/sws/public:ro
       - .cache/ccdp/sws.toml:/etc/sws.toml:ro
 
-  keeper:
-    # keeper:0.3.1 by index digest. Not started by `up`: stack.ts runs it once
-    # after the deploy, so GoogleJwtRoots trusts Google's current keys.
-    image: ghcr.io/libid-org/keeper@sha256:6a97a1bf4d398ab2747155c4f8490c580bef522d83d5c4475ac8bad24daa546d
-    profiles: [keeper]
-    command: ["--config", "/keeper.toml", "once"]
-    configs:
-      - source: keeper
-        target: /keeper.toml
-    depends_on:
-      notary:
-        condition: service_healthy
-      anvil:
-        condition: service_healthy
-
-  postgres:
-    # postgres:16 by index digest. No volume: every run starts empty.
-    image: postgres@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
-    environment:
-      POSTGRES_DB: usernames
-      POSTGRES_USER: usernames
-      POSTGRES_PASSWORD: usernames_dev
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U usernames -d usernames"]
-      interval: 1s
-      timeout: 2s
-      retries: 30
-
-  indexer:
-    # usernames-indexer:0.4.0 by index digest, which decodes contracts v0.15.0.
-    image: ghcr.io/libid-org/usernames-indexer@sha256:8d3ef1b4ae77531ba630fa177aaa1a09cf5177801d00409d0297176f171eeffb
-    environment:
-      DATABASE_URL: postgres://usernames:usernames_dev@postgres:5432/usernames
-      RPC_URL: http://anvil:8545
-      IDENTITY_NAMES_ADDRESS: "0x0531b83b010a6b0c24c2c2c1a6beecc90cc71366"
-      CHAIN_NAMES: local
-      CHAIN_ID: "31337"
-      # A local chain does not reorganize: no confirmations to wait for.
-      CONFIRMATIONS: "0"
-      POLL_INTERVAL_SECS: "1"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      anvil:
-        condition: service_healthy
-
-  api:
-    # usernames-api:0.4.0 by index digest.
-    image: ghcr.io/libid-org/usernames-api@sha256:a2743fe0319a2057beee879dea140caf7ebb405e4be95a3cd9aa8a1516af6164
-    environment:
-      DATABASE_URL: postgres://usernames:usernames_dev@postgres:5432/usernames
-      LISTEN_ADDR: 0.0.0.0:8080
-    ports:
-      - "127.0.0.1:4689:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      indexer:
-        condition: service_started
-
 configs:
   bridge:
     file: ./bridge-config.toml
-  keeper:
-    file: ./keeper.toml

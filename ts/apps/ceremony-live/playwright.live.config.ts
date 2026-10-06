@@ -13,7 +13,7 @@ if (envFile) {
     process.env[name] ??= value
 }
 
-/** Live: real platforms, real notary, real chain. */
+/** Live: real platforms, real notary, real Bridge; no chain. */
 export default defineConfig({
   testDir: 'e2e',
   testMatch: '*.live.spec.ts',
@@ -27,7 +27,7 @@ export default defineConfig({
     command: 'pnpm dev',
     url: APP_ORIGIN,
     reuseExistingServer: !process.env.CI,
-    timeout: 15 * 60_000,
+    timeout: 10 * 60_000,
     gracefulShutdown: { signal: 'SIGTERM', timeout: 120_000 },
     // CI keeps the stack's output off the public job log: the stack writes
     // it to LIBID_STACK_LOGS, which is scanned before upload.

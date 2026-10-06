@@ -1,7 +1,7 @@
 import { livePlatforms, type Platform } from '../local.ts'
 
 /**
- * Whether this run binds `platform`. A platform left out of
+ * Whether this run proves `platform`. A platform left out of
  * LIBID_LIVE_PLATFORMS is skipped on purpose, and reported as skipped.
  */
 export const isLive = (platform: Platform) => livePlatforms(process.env).includes(platform)
