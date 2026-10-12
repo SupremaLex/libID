@@ -1,10 +1,4 @@
-@font-face {
-  font-family: "JetBrains Mono";
-  src: url("../assets/JetBrainsMono-Regular.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
+@import './fonts.css';
 
 * { box-sizing: border-box; }
 
@@ -16,7 +10,7 @@ body {
   padding: 6rem 1.5rem;
   background: radial-gradient(ellipse at 50% 42%, var(--surface), transparent 70%), var(--background);
   color: var(--text);
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Libron", Georgia, serif;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
@@ -26,6 +20,7 @@ main { width: 100%; text-align: center; }
 h1 { margin: 0; font-size: clamp(2.5rem, 8vw, 4rem); font-weight: 400; }
 
 .wordmark {
+  font-family: "JetBrains Mono", monospace;
   color: var(--logo);
   font-size: clamp(5rem, 15vw, 8rem);
   line-height: 1.15;
@@ -37,7 +32,7 @@ h1 { margin: 0; font-size: clamp(2.5rem, 8vw, 4rem); font-weight: 400; }
   max-width: 38rem;
   margin: 1.8rem auto 0;
   color: var(--muted);
-  font-size: clamp(0.8125rem, 1.6vw, 0.9375rem);
+  font-size: clamp(1rem, 1.8vw, 1.125rem);
   line-height: 1.9;
   text-wrap: balance;
 }
@@ -52,7 +47,7 @@ nav a {
   min-height: 3rem;
   padding: 0.75rem 1rem;
   color: var(--text);
-  font-size: 1rem;
+  font-size: 1.125rem;
   line-height: 1.5;
   text-decoration: underline;
   text-decoration-color: var(--border);
@@ -65,7 +60,7 @@ nav a:hover, nav a:focus-visible { text-decoration-color: currentColor; }
 .construction-note {
   margin: 1.5rem 0 0;
   color: var(--muted);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
 }
 
 :focus-visible { outline: 2px solid var(--text); outline-offset: 6px; }
