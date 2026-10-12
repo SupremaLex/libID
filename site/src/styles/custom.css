@@ -17,6 +17,19 @@
   --sl-color-accent-high: var(--accent);
 }
 
+main {
+  --sl-color-text: color-mix(in srgb, var(--text) 65%, white);
+  --sl-color-white: var(--sl-color-text);
+  --sl-color-text-accent: color-mix(in srgb, var(--accent) 80%, var(--text));
+  --sl-color-bg-inline-code: var(--surface);
+  color: var(--sl-color-text);
+}
+
+:root[data-theme='light'] main {
+  --sl-color-text: color-mix(in srgb, var(--text) 80%, black);
+  --sl-color-text-accent: var(--accent);
+}
+
 .sl-markdown-content { font-size: 1.125rem; }
 
 .site-title {
