@@ -18,13 +18,17 @@
 }
 
 .sl-markdown-content,
-main h1 {
+main h1,
+.site-title {
   font-family: 'Libron', Georgia, serif;
 }
 
 .sl-markdown-content { font-size: 1.125rem; }
 
-.site-title { color: var(--logo); }
+.site-title {
+  color: var(--logo);
+  font-weight: 400;
+}
 
 .social-icons a { color: var(--text); }
 .social-icons a:hover,

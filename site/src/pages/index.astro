@@ -1,7 +1,7 @@
 ---
 import ThemeProvider from '../components/ThemeProvider.astro';
 import { palettes } from '../palette.mjs';
-import monoFont from '../assets/JetBrainsMono-Regular.woff2?url';
+import libronFont from '../assets/libron/Libron-Regular.woff2?url';
 import '../styles/home.css';
 ---
 
@@ -14,7 +14,7 @@ import '../styles/home.css';
     <meta name="description" content="Every social account is already a multichain identity">
     <meta name="theme-color" content={palettes.dark.background}>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="preload" href={monoFont} as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href={libronFont} as="font" type="font/woff2" crossorigin>
     <ThemeProvider />
   </head>
   <body>
