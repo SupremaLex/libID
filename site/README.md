@@ -28,6 +28,12 @@ Environment: `NODE_VERSION=22`, `PNPM_VERSION=10.34.6`.
 | Deploy | `pnpm -C site run deploy` |
 | Non-production deploy | `pnpm -C site run deploy:preview` |
 
+Cloudflare caches assets at the edge. `public/_headers` gives fingerprinted
+`/_astro/` assets a one-year browser cache; HTML, favicons, and search files
+keep Cloudflare's default revalidation so updates remain fresh.
+Keep cacheable fonts in `src/assets/` and reference them through imports or CSS
+so Astro changes their URLs when their contents change.
+
 `wrangler.jsonc` manages the `lib.id` and `www.lib.id` production custom domains
 and `previews.lib.id` for Worker Previews. Cloudflare manages their DNS and HTTPS
 certificates. Configure a zone-level Single Redirect rule matching
