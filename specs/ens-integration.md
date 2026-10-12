@@ -98,11 +98,15 @@ Refusal: An unsigned HTTP error. It asserts nothing about any binding.
   A signed address is the holder the Indexed Store records for the handle on
   the one chain the Coin Type names. Depends on ASM-ENS-03.
 - SP-ENS-03:
-  The Gateway never signs absence it does not know: a chain it does not
-  index, a Coin Type two indexed chains share, and an index too far behind
-  each get a Refusal, never a Signed Null. Depends on the Gateway's handle
-  rules admitting every handle an indexed chain binds (§11), and on
-  REQ-ENS-GW-13.
+  The Gateway never signs absence it does not know. A chain it does not
+  index, and a Coin Type two of its indexed chains share, each get a
+  Refusal, never a Signed Null. With the selected chain's index too far
+  behind, every answer that reads a handle gets a Refusal: its holder, its
+  absence, and a handle the rules refuse. The Signed Nulls of REQ-ENS-GW-05
+  and the signed empty result depend only on the name, the Coin Type and the
+  Chain Labels, and are signed however stale the index (REQ-ENS-GW-11).
+  Depends on the Gateway's handle rules admitting every handle an indexed
+  chain binds (§11), and on REQ-ENS-GW-13.
 - SP-ENS-04:
   No two handles reach one name, and a name carries its handle: the Gateway
   reads a name with no mapping table.
