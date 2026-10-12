@@ -279,9 +279,11 @@ taken from the channel when the port is transferred; WebKit does. So from the
 moment the source chooses to leave until the transfer, values the port still
 dispatches are collected in order as its backlog and travel in the keep record.
 The worker returns them with the claim, and the destination delivers them
-before anything still queued in the port, so values the application sends right
-after `Navigate` reach the destination in order. Either record spells the
-backlog only when it is nonempty.
+before anything still queued in the port. A value the engine has taken but not
+yet dispatched at the transfer escapes the backlog: Firefox dispatches it to the
+departing document afterwards and WebKit drops it, so a value the application
+sends right after `Navigate` can be lost. Either record spells the backlog only
+when it is nonempty.
 
 Preservation also serves the isolation fallback: a document that must be
 isolated and is not keeps the port it just selected, before starting it, and
