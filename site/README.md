@@ -55,4 +55,8 @@ Preview command, and environment versions above to each existing preview too.
 as the Preview name and updates its isolated deployment. For a local preview
 deployment, build the site first, then run `pnpm -C site run deploy:preview`.
 
-Only `dist/` is deployed. The bundled JetBrains Mono license is in `public/fonts/OFL.txt`.
+Only `dist/` is deployed.
+
+Docs and Specs use [Libron v0.31](https://github.com/nicoverbruggen/libron/releases/tag/v0.31)
+for reading content; UI and code use JetBrains Mono. Both are self-hosted, with
+licenses in `public/fonts/libron/LICENSE` and `public/fonts/OFL.txt`.

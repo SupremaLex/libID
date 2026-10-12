@@ -6,6 +6,38 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Libron';
+  src: url('/fonts/libron/Libron-Regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libron';
+  src: url('/fonts/libron/Libron-Italic.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libron';
+  src: url('/fonts/libron/Libron-Bold.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libron';
+  src: url('/fonts/libron/Libron-BoldItalic.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+}
+
 :root {
   --sl-font: 'JetBrains Mono', monospace;
   --sl-font-mono: var(--sl-font);
@@ -22,6 +54,13 @@
   --sl-color-accent: var(--accent);
   --sl-color-accent-high: var(--accent);
 }
+
+.sl-markdown-content,
+main h1 {
+  font-family: 'Libron', Georgia, serif;
+}
+
+.sl-markdown-content { font-size: 1.125rem; }
 
 .site-title { color: var(--logo); }
 
