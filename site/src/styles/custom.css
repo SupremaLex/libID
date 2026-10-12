@@ -17,17 +17,22 @@
   --sl-color-accent-high: var(--accent);
 }
 
-main {
-  --sl-color-text: color-mix(in srgb, var(--text) 65%, white);
+.main-pane {
+  --sl-color-bg: color-mix(in srgb, var(--surface) 85%, var(--border));
+  --sl-color-text: color-mix(in srgb, var(--text) 40%, white);
   --sl-color-white: var(--sl-color-text);
-  --sl-color-text-accent: color-mix(in srgb, var(--accent) 80%, var(--text));
-  --sl-color-bg-inline-code: var(--surface);
+  --sl-color-text-accent: color-mix(in srgb, var(--accent) 60%, var(--text));
+  --sl-color-bg-inline-code: var(--background);
+  min-height: calc(100svh - var(--sl-nav-height) - var(--sl-mobile-toc-height));
+  background-color: var(--sl-color-bg);
   color: var(--sl-color-text);
 }
 
-:root[data-theme='light'] main {
+:root[data-theme='light'] .main-pane {
+  --sl-color-bg: color-mix(in srgb, var(--background) 30%, white);
   --sl-color-text: color-mix(in srgb, var(--text) 80%, black);
   --sl-color-text-accent: var(--accent);
+  --sl-color-bg-inline-code: color-mix(in srgb, var(--surface) 45%, white);
 }
 
 .sl-markdown-content { font-size: 1.125rem; }
