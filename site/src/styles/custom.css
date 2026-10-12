@@ -29,10 +29,10 @@
 }
 
 :root[data-theme='light'] .main-pane {
-  --sl-color-bg: color-mix(in srgb, var(--background) 30%, white);
+  --sl-color-bg: var(--background);
   --sl-color-text: color-mix(in srgb, var(--text) 80%, black);
   --sl-color-text-accent: var(--accent);
-  --sl-color-bg-inline-code: color-mix(in srgb, var(--surface) 45%, white);
+  --sl-color-bg-inline-code: var(--surface);
 }
 
 .sl-markdown-content { font-size: 1.125rem; }
