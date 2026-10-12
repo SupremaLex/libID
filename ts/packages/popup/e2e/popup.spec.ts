@@ -356,6 +356,26 @@ test('[POPUP-CONTROL-003] [POPUP-CONTROL-004] close reaches a severed popup over
   expect(await diag(page)).toContain('connection-closed')
 })
 
+test('[POPUP-CONTROL-003] [POPUP-KEEPER-003] a close while the worker keeps the port reaches the next document', async ({
+  page,
+}) => {
+  const { id, popup } = await open(page)
+  await expectPong(page, 0)
+  await popup.evaluate(() => navigator.serviceWorker.ready)
+  await nextDocument(popup, () => navigate(page, `${POPUP}/isolated#c=${id}`))
+  await expect(popup.locator('#status')).toHaveText('connected')
+  const next = encodeURIComponent(`${POPUP}/p#c=${id}`)
+  // Severed, then non-participating: the close waits in the port the worker keeps.
+  await nextDocument(popup, () => navigate(page, `${POPUP}/external?next=${next}`))
+  await expect(popup.locator('#status')).toHaveText('external')
+  await page.evaluate(() =>
+    (window as unknown as { __conn: { close(): Promise<void> } }).__conn.close(),
+  )
+  const closed = popup.waitForEvent('close', { timeout: 10_000 })
+  await popup.getByRole('button', { name: 'Return' }).click()
+  await closed
+})
+
 test('[POPUP-CONTROL-003] close uses the live handle directly', async ({ page }) => {
   const { popup } = await open(page)
   await expectPong(page, 0)

@@ -12,7 +12,13 @@ import {
   type Reporter,
   reportUndeliverable,
 } from './diagnostics.js'
-import { activeRegistration, depart, PortKeeper } from './keeper.js'
+import {
+  activeRegistration,
+  CARRIER_CLAIM_TIMEOUT_MS,
+  depart,
+  KEEPER_REPLY_TIMEOUT_MS,
+  PortKeeper,
+} from './keeper.js'
 import {
   type Carrier,
   type CarrierConstructor,
@@ -141,6 +147,23 @@ function resolveIsolationFallback(value: string, location: Location, fragment: s
   }
   url.hash = fragment
   return url
+}
+
+/**
+ * Closes a port that carried ClosePopup once the popup answers with its departure, or once a
+ * worker keeping it would have handed it on or let it expire: Firefox drops a value waiting in
+ * a kept port whose peer closes.
+ */
+function closeOnDeparture(port: MessagePort): void {
+  const close = (): void => {
+    clearTimeout(timer)
+    port.onmessage = null
+    port.close()
+  }
+  const timer = setTimeout(close, CARRIER_CLAIM_TIMEOUT_MS + KEEPER_REPLY_TIMEOUT_MS)
+  port.onmessage = (event: MessageEvent): void => {
+    if ((event.data as { type?: unknown } | null)?.type === DEPARTED.type) close()
+  }
 }
 
 /** A caller type the peer's routing accepts: bounded and not a reserved control. */
@@ -489,6 +512,7 @@ class ApplicationEndpoint<Out extends Message, In extends Message> extends Endpo
     } else if (this.carrier) {
       try {
         this.carrier.send({ type: 'close-popup' })
+        if (this.carrier instanceof PortCarrier) closeOnDeparture(this.carrier.detach().port)
       } catch {
         // A dead carrier cannot carry the control; local release still runs.
       }

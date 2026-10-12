@@ -92,8 +92,11 @@ sensitive inputs before requesting navigation.
 When the exact retained `WindowProxy` is non-null and not closed, `close` calls
 it directly, regardless of carrier state. Otherwise it sends `ClosePopup` over
 an active carrier. It then closes the logical connection and releases its local
-resources. The receiving popup stops accepting controls and calls
-`window.close()` on itself. The composition MUST expose and invoke
+resources. A port that carried `ClosePopup` stays open until the popup's
+`DocumentDeparted`, or for `CARRIER_CLAIM_TIMEOUT_MS + KEEPER_REPLY_TIMEOUT_MS`:
+the worker may be keeping the other end, and Firefox drops a value waiting in a
+kept port whose peer closes. The receiving popup stops accepting controls and
+calls `window.close()` on itself. The composition MUST expose and invoke
 this operation only for a separate top-level traversable created by
 `window.open()` or an activated link. Both creation paths produce a
 script-closable traversable, including when the browser presents it as a tab,
