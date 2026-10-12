@@ -96,7 +96,8 @@ Refusal: An unsigned HTTP error. It asserts nothing about any binding.
   Depends on ASM-ENS-04 and REQ-ENS-KEY-02.
 - SP-ENS-02:
   A signed address is the holder the Indexed Store records for the handle on
-  the one chain the Coin Type names. Depends on ASM-ENS-03.
+  the one chain the Coin Type names. Depends on ASM-ENS-03 and
+  REQ-ENS-GW-14.
 - SP-ENS-03:
   The Gateway never signs absence it does not know. A chain it does not
   index, and a Coin Type two of its indexed chains share, each get a
@@ -106,7 +107,8 @@ Refusal: An unsigned HTTP error. It asserts nothing about any binding.
   and the signed empty result depend only on the name, the Coin Type and the
   Chain Labels, and are signed however stale the index (REQ-ENS-GW-11).
   Depends on the Gateway's handle rules admitting every handle an indexed
-  chain binds (§11), and on REQ-ENS-GW-13.
+  chain binds (§11), on REQ-ENS-GW-13, and, for chains indexed by
+  different Gateways, on REQ-ENS-GW-14.
 - SP-ENS-04:
   No two handles reach one name, and a name carries its handle: the Gateway
   reads a name with no mapping table.
@@ -306,9 +308,10 @@ produce unchanged.
   EVM chain when it is below 2^64 and is `60` or has bit 31 set; every Coin
   Type at or above 2^64 is non-EVM, and no indexed chain matches one, because
   the Indexed Store holds chain IDs below 2^64 only. With two or more matches
-  the Gateway MUST return a Refusal (HTTP 503). Necessity: the resolver has
-  one URL list for every query, and ERC-3668 has the client walk it until
-  one succeeds. A Signed Null is a success that ends the walk,
+  the Gateway MUST return a Refusal (HTTP 503). This check sees only the
+  Gateway's own Indexed Store; REQ-ENS-GW-14 covers the URL list. Necessity:
+  the resolver has one URL list for every query, and ERC-3668 has the client
+  walk it until one succeeds. A Signed Null is a success that ends the walk,
   so signing absence for a chain this Gateway does not hold would deny a
   binding a later Gateway in the list could serve. No libID binding is ever
   a non-EVM address, so that absence is known.
@@ -335,6 +338,15 @@ produce unchanged.
   Indexed Store does not map with a Signed Null (REQ-ENS-GW-05), which ends
   the client's walk; a Gateway missing a label that another in the list maps
   to the selected chain would deny a binding the other could serve.
+- REQ-ENS-GW-14 (upholds SP-ENS-02, SP-ENS-03):
+  Across all chains indexed by all Gateways in one Handle Resolver's URL
+  list, each Coin Type MUST match at most one chain under REQ-ENS-GW-03.
+  Every Gateway in the list MUST take the same ENS Chain, so that `60`
+  matches one chain too. Necessity: REQ-ENS-GW-04 refuses two matches only
+  within one Indexed Store. If one Gateway indexes chain 1 and another
+  indexes chain 2147483649, both chains have Coin Type 2147483649. Each
+  Gateway finds one match and signs its own chain's answer, and the client
+  takes whichever URL answers first.
 
 ### 8.3 Answers
 
@@ -490,6 +502,13 @@ produce unchanged.
   no production Chain Label is `testnet` or another deployment's first
   label, that the ENS Chain is indexed, and that the Gateways in one URL
   list map the same Chain Labels to the same chains.
+- TEST-ENS-14 (exercises REQ-ENS-GW-14, REQ-ENS-GW-04):
+  For one URL list with two Gateways, one indexing chain 1 and the other
+  chain 2147483649, the deployment check of TEST-ENS-13 reports a
+  violation of REQ-ENS-GW-14: both chains have Coin Type 2147483649. Each
+  of those Gateways alone answers Coin Type 2147483649 with a signed answer
+  for its own chain, which is why the check must fail. One Gateway indexing
+  both chains answers Coin Type 2147483649 with a Refusal (HTTP 503).
 
 ## 11. Security Considerations
 
@@ -541,6 +560,10 @@ produce unchanged.
   map, whether or not another Gateway in the URL list maps it. REQ-ENS-GW-13
   is a deployment rule; nothing checks it, and a Gateway that breaks it
   denies bindings under that label.
+- A Gateway refuses a Coin Type two chains share only when it indexes both.
+  REQ-ENS-GW-14 is a deployment rule; nothing checks it. Where two Gateways
+  in one URL list index chains that share a Coin Type, each signs an answer
+  for its own chain, and the client takes whichever answers first.
 - A deployment that does not index the ENS Chain answers every Coin Type
   `60` query, including every `addr(bytes32)`, with a Refusal
   (REQ-ENS-GW-12). Its names resolve only for clients that ask with a
@@ -577,7 +600,7 @@ produce unchanged.
 | REQ-ENS-LABEL-01 to LABEL-04 | `libID` `ts/packages/ens` (`@libid/ens`, libID PR #109, unmerged): the forward transform with its refusals, and a `parent` option for the Parent Name |
 | REQ-ENS-LABEL-05 | `usernames-indexer` `crates/usernames-core/src/ens.rs`, `crates/usernames-core/src/nodes.rs`: the MUST; the SHOULD is not implemented (§11) |
 | REQ-ENS-GW-01 to GW-11 | `usernames-indexer` `bin/usernames-api/src/ens.rs`, `crates/usernames-core/src/ens.rs`; the TTL ceiling of REQ-ENS-GW-08 in `bin/usernames-api/src/lib.rs` |
-| REQ-ENS-NAME-05, REQ-ENS-GW-12, REQ-ENS-GW-13 | deployment rules; nothing enforces them. `usernames-indexer` `bin/usernames-api/src/ens.rs` documents REQ-ENS-GW-12 |
+| REQ-ENS-NAME-05, REQ-ENS-GW-12, REQ-ENS-GW-13, REQ-ENS-GW-14 | deployment rules; nothing enforces them. `usernames-indexer` `bin/usernames-api/src/ens.rs` documents REQ-ENS-GW-12 |
 | REQ-ENS-KEY-01 | not met by the current deployment (§11) |
 | REQ-ENS-KEY-02 | nothing enforces it: both deploy paths, `libid-contracts` `.github/workflows/deploy.yml` and `scripts/setup-ens-resolver.sh`, deploy with nonce-based `forge create`, and `deploy.yml` picks the deployer key per environment |
 
