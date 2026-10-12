@@ -57,7 +57,6 @@ deployment, build the site first, then run `pnpm -C site run deploy:preview`.
 
 Only `dist/` is deployed.
 
-The homepage, logos, and Docs/Specs reading content use
-[Libron v0.31](https://github.com/nicoverbruggen/libron/releases/tag/v0.31).
-Documentation UI and code use JetBrains Mono. Both are self-hosted, with
-licenses in `public/fonts/libron/LICENSE` and `public/fonts/OFL.txt`.
+All website text uses self-hosted
+[Libron v0.31](https://github.com/nicoverbruggen/libron/releases/tag/v0.31),
+with its license in `public/fonts/libron/LICENSE`.

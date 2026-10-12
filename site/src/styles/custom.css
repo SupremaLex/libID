@@ -1,7 +1,7 @@
 @import './fonts.css';
 
 :root {
-  --sl-font: 'JetBrains Mono', monospace;
+  --sl-font: 'Libron', Georgia, serif;
   --sl-font-mono: var(--sl-font);
   --sl-color-white: var(--text);
   --sl-color-gray-1: var(--text);
@@ -15,12 +15,6 @@
   --sl-color-accent-low: var(--surface);
   --sl-color-accent: var(--accent);
   --sl-color-accent-high: var(--accent);
-}
-
-.sl-markdown-content,
-main h1,
-.site-title {
-  font-family: 'Libron', Georgia, serif;
 }
 
 .sl-markdown-content { font-size: 1.125rem; }
