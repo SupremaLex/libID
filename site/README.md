@@ -3,7 +3,7 @@
 One static site and Cloudflare Worker: landing page at `/`, Starlight at `/docs/` and `/specs/`.
 Add Markdown/MDX with `title` frontmatter in [`docs/pages/`](../docs/pages/).
 Specs are published directly from [`specs/`](../specs/).
-Six UI colors per theme and one shared logo color live in [`src/palette.mjs`](src/palette.mjs), used by all pages and generated favicons.
+Six UI colors per theme and one shared logo color live in [`../brand/palette.json`](../brand/palette.json), used by the website, favicons and CCDP screens, which also share the Libron font in [`../brand/libron/`](../brand/libron/).
 
 ## Local
 
@@ -59,4 +59,4 @@ Only `dist/` is deployed.
 
 All website text uses self-hosted
 [Libron v0.31](https://github.com/nicoverbruggen/libron/releases/tag/v0.31),
-with its license in `public/fonts/libron/LICENSE`.
+with its license in `../brand/libron/LICENSE`, published as `/fonts/libron/LICENSE`.
