@@ -186,9 +186,13 @@ its bounded interval. The same logical connection may use it repeatedly. After
 the worker acknowledges preservation, the source starts navigation immediately
 and the destination calls `PopupConnection.accept` before any other network
 use; the claim is its first step, so the deadline includes document load and
-package import. It never holds a port while an unrelated document, user
-interaction, or intentional background wait owns the popup; a later
-participating document establishes a replacement carrier.
+package import. The deadline counts from when the keeping document was last
+present, which the worker checks every `PRESENCE_CHECK_MS = 1_000`: a source
+whose navigation stalls stays, replaces itself again (see
+[Control](control.md)), and keeps its port until the destination claims it. It
+never holds a port while an unrelated document, user interaction, or
+intentional background wait owns the popup; a later participating document
+establishes a replacement carrier.
 
 The `keep` handler uses `event.waitUntil()` to keep its message event active
 until the port is claimed or its short deadline expires. Its acknowledgement

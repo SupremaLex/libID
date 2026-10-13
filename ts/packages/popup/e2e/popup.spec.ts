@@ -379,6 +379,22 @@ test('[POPUP-KEEPER-003] [POPUP-CONNECTION-003] a long non-participating hop exp
   expect((await diag(page)).filter((c) => c === 'carrier-message-port')).toHaveLength(2)
 })
 
+test('[POPUP-KEEPER-003] a stalled hop navigates again and keeps its port past the deadline', async ({
+  page,
+}) => {
+  test.slow()
+  const { id, popup } = await open(page)
+  await expectPong(page, 0)
+  await popup.evaluate(() => navigator.serviceWorker.ready)
+  // The first two requests never answer, so the destination commits only on the
+  // second retry, after the claim deadline has passed since the keep.
+  await nextDocument(popup, () => navigate(page, `${POPUP}/isolated?stall=${id}&hangs=2#c=${id}`))
+  await expect(popup.locator('#status')).toHaveText('connected')
+  expect(await diag(popup)).toEqual(['carrier-restored'])
+  await ping(page, 9)
+  expect(await expectPong(page, 9)).toMatchObject({ path: '/isolated', isolated: true })
+})
+
 test('[POPUP-KEEPER-005] an explicit root scope keeps and claims through the root registration', async ({
   page,
 }) => {

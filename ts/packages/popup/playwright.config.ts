@@ -25,9 +25,7 @@ export default defineConfig({
       },
     },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    // WebKit can stall a navigation that switches browsing context group (#121,
-    // https://bugs.webkit.org/show_bug.cgi?id=327297); a retried pass is still reported as flaky.
-    { name: 'webkit', use: { ...devices['Desktop Safari'] }, retries: 1 },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
     {
       name: 'mobile-chrome',
       use: {
@@ -35,6 +33,6 @@ export default defineConfig({
         launchOptions: { args: ['--ignore-certificate-errors'] },
       },
     },
-    { name: 'mobile-webkit', use: { ...devices['iPhone 15'] }, retries: 1 },
+    { name: 'mobile-webkit', use: { ...devices['iPhone 15'] } },
   ],
 })

@@ -73,7 +73,11 @@ preserves a same-origin transferable carrier, releases it for cross-origin
 rebind including across sites, or prepares a nontransferable replacement as
 required, then calls `location.replace(url)`. Replacement avoids adding the
 current document to popup history and creates no browsing context. Failure to
-preserve or prepare a carrier rejects before navigation.
+preserve or prepare a carrier rejects before navigation. A popup document still
+present `RENAVIGATE_MS = 3_000` after replacing itself, on any path, replaces
+itself again, then at doubling intervals: WebKit can leave a navigation that
+switches browsing context group uncommitted for good, and a fresh one usually
+gets through ([bug 327297](https://bugs.webkit.org/show_bug.cgi?id=327297)).
 
 `navigateAway` never sends `Navigate`. On the application side it navigates
 the exact retained `WindowProxy` while that is non-null and not closed,
