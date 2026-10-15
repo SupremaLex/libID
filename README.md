@@ -1,21 +1,25 @@
-# [libID](https://lib.id)
+# libID
+
+[![project libID](https://img.shields.io/badge/project-libID-b57614?style=flat-square&labelColor=363636)](https://lib.id)
+[![🪾 made by GroundedSystems](https://img.shields.io/badge/%F0%9F%AA%BE%20made%20by-GroundedSystems-000000?style=flat-square&labelColor=363636)](https://grndd.systems)
 
 ![Rust — Ferris the crab](docs/assets/rust-badge.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-363636?style=flat-square&logo=typescript&logoColor=white)
 ![Solidity](https://img.shields.io/badge/Solidity-363636?style=flat-square&logo=solidity&logoColor=white)
 
-**Primitives for better economic rails over familiar social spaces.**
+**Primitives for new economies built around familiar social identities.**
 
-libID connects social identities to verifiable ledgers so applications can
-bring payments and other economic interactions to the platforms people
-already use.
+libID lets applications verify control of existing social accounts and use
+them as entry points to payments, ownership, and programmable incentives
+across verifiable ledgers without requiring users to create new identities
+or leave the platforms they're used to.
 
 ## Primitives
 
 | Primitive | What it does | Status |
 | --- | --- | --- |
 | [Cross-site communication](ts/packages/popup/README.md)<br>[@libid/popup](https://www.npmjs.com/package/@libid/popup) | Run interactive protocols between websites while keeping each site's memory and persistent states isolated. | 🟢 |
-| [Identity ceremonies](ts/packages/ceremony/README.md)<br>[@libid/ceremony](https://www.npmjs.com/package/@libid/ceremony) | Prove custody of OAuth social accounts with ~10s proof generation, keeping private inputs in the browser.<br>**Supported platforms:** Google, X, and GitHub. | 🟢 |
+| [Identity ceremonies](ts/packages/ceremony/README.md)<br>[@libid/ceremony](https://www.npmjs.com/package/@libid/ceremony) | Prove control of OAuth social accounts with ~10s proof generation, keeping private inputs in the browser.<br>**Supported platforms:** Google, X, and GitHub. | 🟢 |
 | [Ledger interactions](ts/packages/ledger/README.md)<br>[@libid/ledger](https://www.npmjs.com/package/@libid/ledger) | Streamline ledger interactions through a common runtime API with heterogeneous chain drivers. | 🚧 |
 | Key vault<br>`@libid/vault` | Store private keys securely in the browser using IndexedDB. | 🗓️ |
 | Browser wallet<br>`@libid/wallet` | Run a wallet entirely in the browser, independent of ledger choice, with pluggable cryptography and no extensions. | 🗓️ |
