@@ -36,6 +36,11 @@ or leave the platforms they're used to.
 | [libID-bridge-rs](https://github.com/libid-org/libID-bridge-rs) | OAuth bridge for identity ceremonies. |
 | [notary](https://github.com/libid-org/notary) | TLSNotary-based HTTPS proving client and server. |
 
+## Security
+
+Found a vulnerability? Email [security@lib.id](mailto:security@lib.id) and
+keep it out of public issues. See [SECURITY.md](SECURITY.md).
+
 ## Explore
 
 [Docs](https://lib.id/docs/) · [Specs](specs/libid.md)
