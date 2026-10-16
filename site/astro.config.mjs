@@ -26,6 +26,7 @@ export default defineConfig({
         { label: 'Specs', items: [{ autogenerate: { directory: 'specs' } }] },
       ],
       components: {
+        Head: './src/components/Head.astro',
         Sidebar: './src/components/Sidebar.astro',
         ThemeProvider: './src/components/ThemeProvider.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
