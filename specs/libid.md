@@ -243,7 +243,8 @@ implementing that profile. Verifier governance can end a proof's acceptance
 before the window closes by retiring a trust root it relies on or every
 Verifier Version implementing its profile. Google remains bounded by its
 signed expiry. Its signing moduli enter by notarized reading, not by
-governance, and lapse 30 days after the latest reading that lists them.
+governance, and lapse at most 30 days after the latest reading that lists
+them. Two later readings that each change the set end their trust early.
 Short of upgrading the Google Key List or the Platform Verifier, governance
 can end their trust sooner only all at once, by selecting another Google Key
 List or retiring every Verifier Version of the profile. The linked

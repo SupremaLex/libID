@@ -433,8 +433,9 @@ authenticated under common §9.1 by the Notary Service the Google Key List
 pins, with both directions wholly revealed. Anyone may submit a reading, and
 each admitted reading pays that Notary Service one Notary Fee. Google Submissions
 still reach no Notary Service and pay no fee. The Google Key List keeps two
-generations, each one reading's key set and creation time, and trust in a
-generation lapses by time alone.
+generations, each one reading's key set and creation time. Trust in a
+generation lapses with time, with no transaction from anyone, and ends
+sooner once two readings that each change the set follow it.
 
 | Constant | Value | Meaning |
 |---|---|---|
@@ -442,7 +443,7 @@ generation lapses by time alone.
 | reading request line | `GET /oauth2/v3/certs HTTP/1.1` | the request's first line, through its CRLF |
 | maximum reading lead | 300 s | how far a reading's creation time may run ahead of Block Time |
 | maximum reading age | 3600 s | how far a reading's creation time may trail Block Time |
-| generation lifetime | 2592000 s (30 days) | how long a generation stays trusted after its reading's creation time |
+| generation lifetime | 2592000 s (30 days) | the longest a generation stays trusted after its reading's creation time |
 | key limit | 8 | the most keys one reading may carry |
 | modulus length | 256 bytes | the decoded `n` of every key: an RSA-2048 modulus |
 | public exponent | `AQAB` | the `e` of every key: 65537 |
@@ -496,13 +497,21 @@ generation lapses by time alone.
   When an admitted reading lists a different set, the Google Key List MUST
   make the current generation the previous one, discard the generation that
   was previous, and make the reading the current generation. The Google Key
-  List MUST trust a modulus until one generation lifetime after the creation
-  time of the latest generation that lists it. The Google Key List MUST NOT
-  trust any other modulus. Necessity: a token minted under a key Google has
-  just dropped is presented for the rest of its hour, and the previous
-  generation covers it. Trust that lapses by time retires a key Google stopped
-  publishing with no transaction from anyone, and 30 days is runway for a
-  submitter outage, not a key's life.
+  List MUST trust a modulus that either generation lists until one generation
+  lifetime after the creation time of the later generation that lists it. The
+  Google Key List MUST NOT trust a modulus from that time on, or one neither
+  generation lists. Necessity: a token minted under a key Google has just
+  dropped is presented for the rest of its hour, and the previous generation
+  covers it. Trust that lapses by time retires a key Google stopped publishing
+  with no transaction from anyone, and 30 days is runway for a submitter
+  outage, not a key's life. The generation lifetime bounds trust and does not
+  promise it: the second reading that changes the set after the latest reading
+  listing a modulus discards that modulus at once. This hits a modulus that
+  unexpired tokens still use when two such readings land within their hour, as
+  when Google's servers serve three different sets at once during a rotation.
+  Valid Google proofs under it are then rejected until a reading lists it
+  again, and for good once Google stops listing it. That loss is the cost of
+  keeping only two generations.
 - REQ-PLAT-73 (upholds SP-BIND-01):
   The Google Key List MUST NOT expose an operation, other than admitting a
   reading or an upgrade by the Verifier Governance Process, that adds,
@@ -1561,10 +1570,13 @@ Platform Verifier, Google Key List, Notary Service, Consumer.
   seconds behind it, or no later than the current generation is rejected. A
   newer reading of the same set restarts the current generation and keeps
   the previous one. A newer reading of a different set makes the current
-  generation previous and drops the older one. A modulus in either
-  generation is trusted until 2592000 seconds after the latest reading
-  listing it. A Google proof under it is rejected from that moment on, as is
-  one under a modulus neither generation lists.
+  generation previous and drops the older one. A modulus that either
+  generation lists is trusted until 2592000 seconds after the creation time
+  of the later generation listing it, and a Google proof under it is
+  rejected from that moment on. A Google proof under a modulus neither
+  generation lists is rejected. The second reading that changes the set
+  after the latest reading listing a modulus ends its trust, even with fewer
+  than 2592000 seconds elapsed.
 - TEST-PLAT-25 (exercises REQ-PLAT-73):
   No Google Key List operation other than an admitted reading or an upgrade
   adds, removes, or re-dates a modulus. A caller other than the Verifier
