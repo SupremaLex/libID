@@ -198,10 +198,10 @@ time: the X token attestation and the GitHub token-exchange attestation.
 timestamp over Block Time. Google's signed `exp` bounds its validity, so
 `("google", 1)` names neither of those two. `futureObservationAllowance` is
 the maximum lead of a profile's evidence time over Block Time, and the amount
-subtracted from that time to give `metadataObservedAt` on the scale every
-profile shares
+subtracted from that time to give `metadataObservedAt`, a watermark no later
+than Block Time
 ([platform profiles §2.2](platform-ceremonies.md#22-metadata-ordering-and-validity-ceilings)).
-Google's `exp` runs about an hour ahead of the moment it describes, and the
+Google's `exp` runs about an hour ahead of the token's issue, and the
 Google allowance is two hours. A notary stamps its own clock, so the X and
 GitHub allowances cover clock skew alone. Verifier governance controls the Supported
 Version Set and the trust roots, so a proof is accepted only while a Verifier

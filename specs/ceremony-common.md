@@ -582,7 +582,7 @@ an identity session — so one Submission on either path pays two fees.
   it decoded, the Platform Ceremony Version it implements, the client
   identifier, the canonical `userId`, the raw handle bytes, and
   `metadataObservedAt`. Necessity: an authenticated `userId`, handle, and
-  observation time are what the ceremony exists to produce; the digest is the
+  metadata watermark are what the ceremony exists to produce; the digest is the
   Consumer's replay nullifier, which it cannot recompute without reading the
   payload. The Consumer trusts these fields as it trusts the Platform Verifier
   the Verifier Governance Process installed.

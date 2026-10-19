@@ -215,14 +215,18 @@ refresh the authorization. `proofLifetime`, `maxFutureAttestationSkew`, and
 [protocol parameters](libid.md#protocol-parameters) each profile fixes.
 
 Evidence times do not describe the same moment. Google's `exp` runs about an
-hour ahead of the token's issue, while a notary stamps its own clock.
-Subtracting each profile's `futureObservationAllowance` puts
-`metadataObservedAt` on one scale every profile shares, so comparing two
-profiles' values does not let one of them always win. The allowance is also a
-ceiling. A Consumer supersedes stored metadata only on a strictly newer
-`metadataObservedAt` (common REQ-COMMON-25A), so without a ceiling a
-longer-lived token would buy a proportionally longer lock on a name, and
-re-proving would not supersede it until Block Time caught up.
+hour ahead of the token's issue, while a notary stamps its own clock. The
+allowance caps how far evidence time may lead Block Time (REQ-PLAT-09A), so
+subtracting it keeps `metadataObservedAt` at or below Block Time. The
+saturating subtraction never reverses the order of two evidence times under
+one profile. `metadataObservedAt` is therefore a conservative watermark, not
+the moment of observation. For evidence produced at one moment, a Google
+value falls about 3600 seconds before that moment and an X or GitHub value
+about 300 seconds before it. The cap matters because a Consumer supersedes
+stored metadata only on a strictly newer `metadataObservedAt` (common
+REQ-COMMON-25A), so without a cap a longer-lived token would buy a
+proportionally longer lock on a name, and re-proving would not supersede it
+until Block Time caught up.
 
 Google's signed `exp` alone supplies the accepted one-hour validity value
 and, less its allowance, the ordering value. A Google proof also requires its
