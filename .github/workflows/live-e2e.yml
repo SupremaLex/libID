@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   ceremony:
-    name: GitHub and X ceremonies (live)
+    name: Live ceremonies
     # A pull request from a fork or from Dependabot gets no secrets, so it
     # does not run.
     if: >-
@@ -52,17 +52,18 @@ jobs:
       - name: Install Chromium
         run: pnpm -C ts --filter @libid/ceremony-live exec playwright install --with-deps chromium
 
-      # Google is left out: it challenges a saved session arriving from a
-      # runner's address ("Verify it's you"), which no automation passes. Its
-      # test still runs locally.
+      # The platforms are the repository variable LIBID_LIVE_PLATFORMS, else
+      # GitHub and X. Google is left out by default: it has challenged a saved
+      # session arriving from a runner's address ("Verify it's you"), which no
+      # automation passes. Its test still runs locally.
       # Its own timeout, so a run that hangs still reaches the steps below:
       # the stack's 10-minute start, two tests of 12 minutes, and 2 minutes
       # to stop the stack (playwright.live.config.ts), with room to spare.
-      - name: Prove GitHub and X identities end to end
+      - name: Prove identities end to end
         id: test
         timeout-minutes: 40
         env:
-          LIBID_LIVE_PLATFORMS: github,x
+          LIBID_LIVE_PLATFORMS: ${{ vars.LIBID_LIVE_PLATFORMS || 'github,x' }}
           LIBID_STACK_LOGS: ${{ runner.temp }}/stack.log
           GH_TEST_ALICE_USERNAME: ${{ secrets.GH_TEST_ALICE_USERNAME }}
           GH_TEST_ALICE_PASSWORD: ${{ secrets.GH_TEST_ALICE_PASSWORD }}
@@ -72,6 +73,10 @@ jobs:
           # libid-server-rs' ceremony-tests (branch feat/live-ceremony-tests,
           # libid-server-rs PR #12).
           X_TEST_ALICE_COOKIES: ${{ secrets.X_TEST_ALICE_COOKIES }}
+          GOOGLE_TEST_ALICE_EMAIL: ${{ secrets.GOOGLE_TEST_ALICE_EMAIL }}
+          # The saved Google session: base64 of a Playwright storage state or
+          # of `ceremony export google`.
+          GOOGLE_TEST_ALICE_COOKIES: ${{ secrets.GOOGLE_TEST_ALICE_COOKIES }}
         run: pnpm -C ts/apps/ceremony-live test:live
 
       # The artifact is public. Screenshots, Playwright's error notes and the
@@ -90,6 +95,7 @@ jobs:
           GH_TEST_ALICE_PASSWORD: ${{ secrets.GH_TEST_ALICE_PASSWORD }}
           GH_TEST_ALICE_TOTP_SECRET: ${{ secrets.GH_TEST_ALICE_TOTP_SECRET }}
           X_TEST_ALICE_COOKIES: ${{ secrets.X_TEST_ALICE_COOKIES }}
+          GOOGLE_TEST_ALICE_COOKIES: ${{ secrets.GOOGLE_TEST_ALICE_COOKIES }}
         # A stack the test step left running stops first, so nothing writes to
         # the log after it is scanned; what goes up is the copy scanned.
         run: |
