@@ -424,7 +424,7 @@ The signing key is fetched from Google's JWKS endpoint (§3.4) as witness input.
 ### 3.4 Signing-key lifecycle
 
 Google rotates the keys it signs ID Tokens with and publishes its current
-set, including the key it will sign with next, at
+set, which in practice includes the key it will sign with next, at
 `https://www.googleapis.com/oauth2/v3/certs`. The Platform Verifier reads its
 trusted Google modulus set from a Google Key List: a ledger component the
 Verifier Governance Process selects for it, which admits moduli only from
@@ -524,10 +524,16 @@ sooner once two readings that each change the set follow it.
   before the set lapses only by selecting another Google Key List or retiring
   every Verifier Version of the profile.
 
-Rotation is permissionless, so Google ceremonies stay live while some party
-pays the Notary Fee for a reading after each change to Google's published
-set and at least once per generation lifetime. Google lists a key before it
-signs with it, so a reading taken in that interval trusts the key in time.
+Rotation is permissionless: any party can restore Google ceremonies with a
+reading that lists the key Google signs with, paying its Notary Fee. That
+permits recovery, not uninterrupted availability. Availability assumes that
+Google lists a key before it signs with it and that a reading listing the key
+lands in between. It also assumes that a reading lands at least once per
+generation lifetime and that no two readings discard a modulus still in use
+(REQ-PLAT-72). Nothing guarantees the lead:
+[OIDC §10.1.1](https://openid.net/specs/openid-connect-core-1_0.html#RotateSigKeys)
+lets a signer start using a new key at its discretion. Until a reading that
+lists a newly signing key lands, valid Google proofs under it are rejected.
 The Google Key List reports when its current generation has at most the
 renewal margin of trust left, so a submitter can renew well before the lapse.
 
@@ -1688,3 +1694,5 @@ Informative: [RFC9700], [TLSNotary-Proxy], [GitHub-public-clients].
 [GitHub-public-clients]: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/best-practices-for-creating-an-oauth-app#client-secrets
 
 [RFC9207]: https://www.rfc-editor.org/rfc/rfc9207.html
+
+[OIDC]: https://openid.net/specs/openid-connect-core-1_0.html

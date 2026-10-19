@@ -1551,7 +1551,8 @@ Google's profile carries none, yet each reading that renews its signing keys
 pays one Notary Fee
 ([platform profiles §3.4](platform-ceremonies.md#34-signing-key-lifecycle)).
 An unpayable fee, like a gap with no reading, therefore stops every Google
-ceremony 30 days after the last reading.
+ceremony at most 30 days after the last reading, and sooner once Google signs
+with a key the Google Key List does not trust.
 
 The handle, the platform user identifier, and the client identifier are
 published deliberately. A binding exists to be read, and each of these values
