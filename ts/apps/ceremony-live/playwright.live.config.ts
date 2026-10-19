@@ -39,6 +39,11 @@ export default defineConfig({
     headless: !process.env.HEADED,
     // Automation X and Google can see makes them challenge; see e2e/person.ts.
     launchOptions: { args: ['--disable-blink-features=AutomationControlled'] },
+    // LIBID_TEST_PROXY routes the browser's traffic, loopback aside, through a
+    // proxy: the platforms then see the proxy's address instead of this host's.
+    ...(process.env.LIBID_TEST_PROXY && {
+      proxy: { server: process.env.LIBID_TEST_PROXY, bypass: 'localhost,127.0.0.1,[::1]' },
+    }),
     // A trace records every fill and cookie, the test accounts' password and
     // sessions included, so CI keeps screenshots only.
     trace: process.env.CI ? 'off' : 'retain-on-failure',
