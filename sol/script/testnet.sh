@@ -8,8 +8,8 @@ cd "$(dirname "$0")/.."
 
 # The testnet environment's canonical addresses, from chain-configurations'
 # networks/sepolia.toml and networks/eden-testnet.toml.
-registry=0x25F29C8C765db2f27d1e2b23987A7b0655C7D640
-escrow=0x57355e1D1Bcf61FeC9b2E5CaD60DccCDdDC4d8e5
+registry=0x4e750FB0E1e529D7a57647C0001dB96C5FFb6FA1
+escrow=0xC7C13a7715858e60d628F867048E0F67fC683dd6
 
 # Written beside the target and moved over it only once complete, so a failed
 # run leaves the old file in place.

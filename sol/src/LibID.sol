@@ -12,18 +12,19 @@ pragma solidity ^0.8.20;
 ///      from `LibID` with nothing else changed: import it as `LibID` to build
 ///      for a testnet. Every function is `internal`: it is
 ///      compiled into the calling contract, and there is nothing to deploy or
-///      link. Where a contract is not deployed, the functions that need it
+///      link. Where a contract has no code, the functions that need it
 ///      revert `LibIDUnavailable`: check `isAvailable` before reading or
-///      gating, and `isEscrowAvailable` before paying. A platform that is not
-///      set up on the chain makes the reads and gates revert `UnknownPlatform`;
-///      `publishedHandleOf` returns an empty string instead.
+///      gating, and `isEscrowAvailable` before paying. `LibID`'s addresses
+///      have no code on Ethereum mainnet yet, so `LibID` reads as unavailable
+///      there. A platform other than GitHub, X and Google makes every read
+///      and gate revert `UnknownPlatform`.
 ///
-///      Case never matters in a handle. On GitHub and X a leading at-sign is
-///      dropped. A Google handle is the email address exactly as Google
-///      reports it: dots and plus tags are kept, so a dotted Gmail address and
-///      the same address without the dots are different handles, even though
-///      Gmail delivers both to one inbox. A leading at-sign makes it no handle
-///      at all.
+///      A handle is looked up as typed, with only A-Z folded to a-z. A
+///      leading at-sign or a space makes another handle, which nobody holds.
+///      A Google handle is the email address exactly as Google reports it:
+///      dots and plus tags are kept, so a dotted Gmail address and the same
+///      address without the dots are different handles, even though Gmail
+///      delivers both to one inbox.
 ///
 ///      `pay`, `payToken` and `refund` call out. The escrow sends ETH straight
 ///      to a handle's holder, whose code runs and can revert or burn gas, and a
@@ -31,9 +32,9 @@ pragma solidity ^0.8.20;
 ///      and update your own state before paying.
 library LibID {
     /// @notice The IdentityRegistry: which address holds which identity.
-    address internal constant REGISTRY = 0xbefD300aFf7D4A67fb381Afe8B3596793D3E9a83;
+    address internal constant REGISTRY = 0xfecfc075ee28b85C86902ba3CCe62c4264fA81b7;
     /// @notice The HandleEscrow: value sent to a handle before anyone holds it.
-    address internal constant ESCROW = 0x17a244e23ef1f12071298A1862194FeA3D00bbf7;
+    address internal constant ESCROW = 0xe88c1f6AF33a80625930FB1dd3C43b5cA1Fb9518;
 
     /// @notice Platform ids: `keccak256` of the platform key.
     bytes32 internal constant GITHUB = keccak256("github");
@@ -42,9 +43,6 @@ library LibID {
 
     /// @notice The address the escrow uses for the chain's own coin (EIP-7528).
     address internal constant NATIVE = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-    /// @dev The registry's error for text that can never be a handle.
-    bytes4 private constant UNUSABLE_HANDLE = bytes4(keccak256("UnusableHandle(uint8)"));
 
     /// This chain has no libID contract where one is needed.
     error LibIDUnavailable();
@@ -56,7 +54,8 @@ library LibID {
     error ApproveFailed(address token);
 
     /// @notice Whether this chain has the IdentityRegistry, so reads and gates
-    ///         work for the platforms set up on it.
+    ///         work.
+    /// @dev Checks only that `REGISTRY` has code.
     function isAvailable() internal view returns (bool) {
         return REGISTRY.code.length != 0;
     }
@@ -74,7 +73,7 @@ library LibID {
     // ─── Reading ────────────────────────────────────────────────────
 
     /// @notice The address that holds a handle, or zero if nobody does.
-    /// @dev Text that can never be a handle also returns zero.
+    /// @dev Text the platform never issues also returns zero.
     function resolve(bytes32 platformId, string memory handle) internal view returns (address) {
         return _registry().resolveHandle(platformId, handle);
     }
@@ -82,8 +81,8 @@ library LibID {
     /// @notice The address that holds a handle, or zero if nobody does or its
     ///         latest proof is older than `maxAge` seconds. See `isHolder` for
     ///         how age is counted.
-    /// @dev Zero does not say which: unheld, too old, or text that is no
-    ///      handle. Use `bindingOf` to tell them apart.
+    /// @dev Zero does not say which: unheld or too old. Use `bindingOf` to
+    ///      tell them apart.
     function resolve(bytes32 platformId, string memory handle, uint256 maxAge) internal view returns (address) {
         (address holder, uint64 observedAt) = _binding(platformId, handle);
         return _isFresh(observedAt, maxAge) ? holder : address(0);
@@ -92,8 +91,7 @@ library LibID {
     /// @notice The holder of a handle and the `observedAt` of its latest proof,
     ///         to apply your own rules.
     /// @dev `holder` is zero when nobody holds the handle; `observedAt` is
-    ///      then zero too, or the time of the proof that last held it. Text
-    ///      that can never be a handle reads as unheld.
+    ///      then zero too, or the time of the proof that last held it.
     function bindingOf(bytes32 platformId, string memory handle)
         internal
         view
@@ -102,10 +100,13 @@ library LibID {
         return _binding(platformId, handle);
     }
 
-    /// @notice The address that holds the identity with this platform id, or
-    ///         zero. An id never changes, unlike a handle.
-    function resolveId(bytes32 platformId, string memory id) internal view returns (address) {
-        return _registry().resolveId(platformId, id);
+    /// @notice The address that holds the identity with this id node, or zero.
+    ///         An id never changes, unlike a handle.
+    /// @dev The id node is `SHA256("libid.<platform>.user-id" || id)`,
+    ///      computed off chain, as `idNode` in libID-contracts' TypeScript
+    ///      package does. The id itself is never on chain.
+    function resolveId(bytes32 idNode) internal view returns (address) {
+        return _registry().resolveId(idNode);
     }
 
     /// @notice The handle `holder` publishes on a platform, or an empty string.
@@ -152,22 +153,25 @@ library LibID {
     ///      Otherwise the escrow holds the funds until the handle is proved and
     ///      claimed, and `refundTo` can take them back until then.
     ///
-    ///      Reverts `LibIDUnavailable` unless `isEscrowAvailable`, and
-    ///      `UnusableHandle` for text that can never be a handle. The escrow
+    ///      Nothing checks that the platform could issue the text. Text it
+    ///      never issues, such as a GitHub handle with a leading at-sign,
+    ///      escrows at a node nobody can claim, and only `refundTo` can take
+    ///      it back.
+    ///
+    ///      Reverts `LibIDUnavailable` unless `isEscrowAvailable`. The escrow
     ///      reverts `ZeroAmount` when nothing would arrive, `BadRefundTo` when
     ///      `refundTo` is zero or the escrow, `PayingYourself` when this
     ///      contract holds the handle, and `PlatformAcceptsNoBindings` when
     ///      nobody holds it and the platform takes no new proofs.
-    /// @return handleNode Where the escrow keeps the funds. Keep it to `refund`:
-    ///         a later change to the platform's rules can stop the handle text
-    ///         from reaching this node.
+    /// @return handleNode The registry's node for the handle, where the escrow
+    ///         keeps the funds. Keep it to `refund`: an upgrade of the
+    ///         registry can stop the handle text from reaching this node.
     function pay(bytes32 platformId, string memory handle, uint256 amount, address refundTo)
         internal
         returns (bytes32 handleNode)
     {
-        bytes32 hash;
-        (hash, handleNode) = _hashAndNode(platformId, handle);
-        ILibIDEscrow(ESCROW).deposit{value: amount}(platformId, hash, NATIVE, amount, refundTo);
+        handleNode = _escrowNode(platformId, handle);
+        ILibIDEscrow(ESCROW).deposit{value: amount}(platformId, handleNode, NATIVE, amount, refundTo);
     }
 
     /// @notice Send `amount` of an ERC-20 token held by this contract to a
@@ -181,10 +185,9 @@ library LibID {
         internal
         returns (bytes32 handleNode)
     {
-        bytes32 hash;
-        (hash, handleNode) = _hashAndNode(platformId, handle);
+        handleNode = _escrowNode(platformId, handle);
         _forceApprove(token, amount);
-        ILibIDEscrow(ESCROW).deposit(platformId, hash, token, amount, refundTo);
+        ILibIDEscrow(ESCROW).deposit(platformId, handleNode, token, amount, refundTo);
     }
 
     /// @notice Take back this contract's escrowed deposits at `handleNode`, in
@@ -209,43 +212,21 @@ library LibID {
         return ILibIDEscrow(ESCROW);
     }
 
-    /// @dev A handle's hash under the platform's current rules, and the node
-    ///      the escrow books a deposit of that hash at. Both come from the
-    ///      registry, which must be the escrow's: the escrow asks its own
-    ///      registry for the node.
-    function _hashAndNode(bytes32 platformId, string memory handle)
-        private
-        view
-        returns (bytes32 hash, bytes32 handleNode)
-    {
+    /// @dev The registry's node for a handle. The registry must be the
+    ///      escrow's, which books and pays out by that registry's nodes.
+    function _escrowNode(bytes32 platformId, string memory handle) private view returns (bytes32) {
         if (!isEscrowAvailable()) revert LibIDUnavailable();
-        ILibIDRegistry registry = ILibIDRegistry(REGISTRY);
-        hash = registry.handleHashOf(platformId, handle);
-        handleNode = registry.handleNodeOfHash(platformId, hash);
+        return ILibIDRegistry(REGISTRY).handleNodeOf(platformId, handle);
     }
 
-    /// @dev The holder and proof time of a handle. Text that can never be a
-    ///      handle reads as unheld. Whenever the answer is "unheld",
-    ///      `resolveHandle` runs too: it reverts `UnknownPlatform` for a
-    ///      platform with no verifier yet, which `handleNodeOf` alone lets by.
-    ///      A held handle proves the platform works, so that call is skipped.
+    /// @dev The holder and proof time of a handle.
     function _binding(bytes32 platformId, string memory handle)
         private
         view
         returns (address holder, uint64 observedAt)
     {
         ILibIDRegistry registry = _registry();
-        try registry.handleNodeOf(platformId, handle) returns (bytes32 node) {
-            (holder, observedAt) = registry.handleBinding(node);
-        } catch (bytes memory reason) {
-            // forge-lint: disable-next-line(unsafe-typecast)
-            if (reason.length < 4 || bytes4(reason) != UNUSABLE_HANDLE) {
-                assembly ("memory-safe") {
-                    revert(add(reason, 32), mload(reason))
-                }
-            }
-        }
-        if (holder == address(0)) registry.resolveHandle(platformId, handle);
+        return registry.handleBinding(registry.handleNodeOf(platformId, handle));
     }
 
     /// @dev Adds rather than subtracts, so no `maxAge` can underflow or
@@ -282,18 +263,16 @@ library LibID {
 /// @dev The IdentityRegistry calls LibID makes.
 interface ILibIDRegistry {
     function resolveHandle(bytes32 platformId, string calldata handle) external view returns (address);
-    function resolveId(bytes32 platformId, string calldata id) external view returns (address);
+    function resolveId(bytes32 idNode) external view returns (address);
     function publishedHandleOf(address holder, bytes32 platformId) external view returns (string memory);
     function handleNodeOf(bytes32 platformId, string calldata handle) external view returns (bytes32);
     function handleBinding(bytes32 handleNode) external view returns (address holder, uint64 observedAt);
-    function handleHashOf(bytes32 platformId, string calldata handle) external view returns (bytes32);
-    function handleNodeOfHash(bytes32 platformId, bytes32 handleHash) external view returns (bytes32);
 }
 
 /// @dev The HandleEscrow calls LibID makes.
 interface ILibIDEscrow {
     function registry() external view returns (address);
-    function deposit(bytes32 platformId, bytes32 handleHash, address token, uint256 amount, address refundTo)
+    function deposit(bytes32 platformId, bytes32 handleNode, address token, uint256 amount, address refundTo)
         external
         payable;
     function refund(bytes32 handleNode, address token, address recipient) external;

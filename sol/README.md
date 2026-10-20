@@ -38,8 +38,13 @@ import {LibIDTestnet as LibID} from "libid/LibIDTestnet.sol";
 
 | Library | Chains | IdentityRegistry | HandleEscrow |
 |---|---|---|---|
-| `LibID` | Ethereum mainnet | `0xbefD300aFf7D4A67fb381Afe8B3596793D3E9a83` | `0x17a244e23ef1f12071298A1862194FeA3D00bbf7` |
-| `LibIDTestnet` | Sepolia, Eden testnet | `0x25F29C8C765db2f27d1e2b23987A7b0655C7D640` | `0x57355e1D1Bcf61FeC9b2E5CaD60DccCDdDC4d8e5` |
+| `LibID` | Ethereum mainnet | `0xfecfc075ee28b85C86902ba3CCe62c4264fA81b7` | `0xe88c1f6AF33a80625930FB1dd3C43b5cA1Fb9518` |
+| `LibIDTestnet` | Sepolia, Eden testnet | `0x4e750FB0E1e529D7a57647C0001dB96C5FFb6FA1` | `0xC7C13a7715858e60d628F867048E0F67fC683dd6` |
+
+These are the libID-contracts v0.18 addresses. They are not deployed on
+Ethereum mainnet yet: there, `isAvailable()` and `isEscrowAvailable()` are
+false and every other call reverts `LibIDUnavailable`. `isAvailable` checks only that the registry
+address has code.
 
 A local chain has no contract at these addresses. Use `LibIDTestBase` in
 your tests, as below.
@@ -84,14 +89,18 @@ contract GuestbookTest is LibIDTestBase {
   It moves the clock forward a second first, so binds in one block do not
   refuse each other as stale.
 - `bindHandle(holder, platformId, id, handle, observedAt, publish)` takes the
-  proof time, to test proof ages. It does not move the clock.
+  proof time, to test proof ages. It does not move the clock. Without
+  `publish`, the bind discloses no handle.
+- Both bind the nodes a circuit would output for `id` and `handle`.
+  `libidIdNode(platformId, id)` gives the id node, for `resolveId`.
 - Where libID is already deployed, as on a fork, `deployLibID` uses that
   deployment and adds the stand-in verifiers to it. Code there that is not
   libID makes it revert.
 - The functions work inside your `vm.prank` or `vm.startPrank`, and leave it
   in place.
-- The platform verifiers are stand-ins, `LibIDStandInVerifier`, that check
-  nothing. Everything else is the real code.
+- The platform verifiers are stand-ins, libID-contracts' test
+  `StubPlatformVerifier`, that check no proof. Everything else is the real
+  code.
 
 Unlike `LibID.sol`, the base imports the libID contracts. They come from
 the `lib/libID-contracts` submodule of this repository and its own
@@ -129,7 +138,7 @@ builds and tests it.
 | `resolve(platformId, handle)` | the holder of a handle, or zero |
 | `resolve(platformId, handle, maxAge)` | the same, or zero if the latest proof is older than `maxAge` seconds |
 | `bindingOf(platformId, handle)` | the holder and the `observedAt` of the latest proof, to apply your own rules |
-| `resolveId(platformId, id)` | the holder of the identity with that id, or zero |
+| `resolveId(idNode)` | the holder of the identity with that id node, or zero |
 | `publishedHandleOf(holder, platformId)` | the handle the holder publishes, or `""` |
 | `isHolder(account, platformId, handle, maxAge)` | whether `account` holds the handle with a fresh enough proof |
 | `requireHolder(platformId, handle, maxAge)` | reverts `NotHolder` or `ProofTooOld` unless `msg.sender` holds it |
@@ -139,20 +148,23 @@ builds and tests it.
 | `isAvailable()` | whether this chain has the IdentityRegistry, for reads and gates |
 | `isEscrowAvailable()` | whether it also has the HandleEscrow, bound to that registry, for payments |
 
-Platform ids are `LibID.GITHUB`, `LibID.X` and `LibID.GOOGLE`. Case never
-matters in a handle. On GitHub and X a leading at-sign is dropped. A Google
-handle is the email address exactly as Google reports it: it must not start
-with an at-sign, and dots and plus tags are kept, so a dotted Gmail address
-and the same address without the dots are different handles, even though
-Gmail delivers both to one inbox.
+Platform ids are `LibID.GITHUB`, `LibID.X` and `LibID.GOOGLE`. A handle is
+looked up as typed, with only A-Z folded to a-z. `OctoCat` finds `octocat`;
+`@octocat` and ` octocat` are other handles, which nobody holds. A Google
+handle is the email address exactly as Google reports it: dots and plus tags
+are kept, so a dotted Gmail address and the same address without the dots
+are different handles, even though Gmail delivers both to one inbox.
+
+`resolveId` takes the id node, never the id. Compute it off chain:
+`SHA256("libid.<platform>.user-id" || id)`, as `idNode('github', '583231')`
+from `@libid/contracts/platforms` does. Nothing on chain computes it.
 
 Where a contract is not deployed, the functions that need it revert
-`LibIDUnavailable`. A platform the chain has not set up makes the reads and
-gates revert `UnknownPlatform`; `publishedHandleOf` returns `""` instead.
+`LibIDUnavailable`. Any platform id but the three makes every read and gate
+revert `UnknownPlatform`. A platform with no verifier yet reads as unheld.
 
-`resolve` with a `maxAge` returns zero for a handle nobody holds, for a proof
-that is too old, and for text that is no handle. Use `bindingOf` to tell
-them apart.
+`resolve` with a `maxAge` returns zero for a handle nobody holds and for a
+proof that is too old. Use `bindingOf` to tell them apart.
 
 ## Proof age
 
@@ -182,8 +194,11 @@ and `refundTo` can take them back until then.
 - Set `refundTo` to your user, so they can call `HandleEscrow.refund`
   themselves. If you set it to your contract, keep the node `pay` returns and
   offer a way to call `LibID.refund` with it. Do not recompute the node from
-  the handle later: a change to the platform's rules can make that text reach
-  a different node, or none.
+  the handle later: an upgrade of the registry can make that text reach a
+  different node.
+- Nothing checks that the platform could issue the handle. Text it never
+  issues, such as `@octocat` on GitHub, is escrowed at a node nobody can
+  claim. Only `refundTo` gets it back.
 - Payments call out. When the handle has a holder, the escrow sends ETH
   straight to it with all remaining gas: the holder's code runs, and can
   revert the payment or burn the gas. A token runs its own code too. Guard the
@@ -215,7 +230,9 @@ verifiers give, at both ends of their acceptance windows. One test checks
 both libraries' addresses against their environment's factory and the CREATE3
 derivation of the canonical names. The fork tests run `LibID` against
 Ethereum mainnet and `LibIDTestnet` against Sepolia and Eden testnet, on
-local forks: they read, and pay a handle nobody holds and refund it. Each is
+local forks: they read, and pay a handle nobody holds and refund it. Where a
+chain has no code at the addresses, as mainnet has none yet, they check only
+that the library reports it unavailable, and skip the rest. Each is
 skipped without its RPC URL (`ETH_RPC_URL`, `SEPOLIA_RPC_URL`,
 `EDEN_RPC_URL`), unless `LIBID_REQUIRE_FORK=true`, which CI sets: then a
 missing URL fails.

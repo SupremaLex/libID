@@ -11,13 +11,13 @@ import {CeremonyProofVerifier} from "libid-contracts/ceremony/CeremonyProofVerif
 import {IPlatformVerifier} from "libid-contracts/ceremony/IPlatformVerifier.sol";
 import {IProofVerifier} from "libid-contracts/ceremony/IProofVerifier.sol";
 import {HandleEscrow} from "libid-contracts/escrow/HandleEscrow.sol";
-import {HandleVectors} from "libid-contracts/identity/HandleVectors.sol";
+import {HandleNode} from "libid-contracts/handles/HandleNode.sol";
 import {IdentityRegistry} from "libid-contracts/identity/IdentityRegistry.sol";
 import {IIdentityRegistry} from "libid-contracts/identity/IIdentityRegistry.sol";
+import {StubPlatformVerifier} from "libid-contracts/identity/test/StubPlatformVerifier.sol";
 
 import {LibID} from "../LibID.sol";
 import {LibIDTestnet} from "../LibIDTestnet.sol";
-import {LibIDStandInVerifier} from "./LibIDStandInVerifier.sol";
 
 /// @title LibIDTestBase
 /// @notice A base for Foundry tests of a contract that uses LibID. It puts the
@@ -28,8 +28,10 @@ import {LibIDStandInVerifier} from "./LibIDStandInVerifier.sol";
 ///      libID-contracts are placed there behind proxies, with empty storage.
 ///      Where libID is already there, as on a fork or after an earlier call,
 ///      that deployment is used as it is. Either way, handles are bound
-///      through `LibIDStandInVerifier`, registered beside any real verifiers
-///      under `LIBID_STAND_IN_VERSION`; everything else is the real code.
+///      through libID-contracts' `StubPlatformVerifier`, registered beside any
+///      real verifiers under `LIBID_STAND_IN_VERSION`. It checks no proof and
+///      reports the nodes `bindHandle` computes, as a circuit would; everything
+///      else is the real code.
 ///
 ///      Every function works inside a `vm.prank` or `vm.startPrank` of the
 ///      calling test and leaves it as it found it. None works during a
@@ -48,7 +50,7 @@ abstract contract LibIDTestBase is Test {
     HandleEscrow internal libidEscrow;
     CeremonyProofVerifier internal libidProofs;
     /// @notice The stand-in verifier of each platform `addLibIDPlatform` set up.
-    mapping(bytes32 platformId => LibIDStandInVerifier) internal libidVerifiers;
+    mapping(bytes32 platformId => StubPlatformVerifier) internal libidVerifiers;
 
     uint256 private libidNonce;
 
@@ -89,17 +91,11 @@ abstract contract LibIDTestBase is Test {
         }
     }
 
-    /// @notice Set up a platform: its real handle rules, if the registry has
-    ///         none for it yet, and a stand-in verifier. `platformId` is
+    /// @notice Set up a platform: a stand-in verifier for it. `platformId` is
     ///         `LibID.GITHUB`, `LibID.X` or `LibID.GOOGLE`.
     function addLibIDPlatform(bytes32 platformId) internal libidKeepsCallers {
-        LibIDStandInVerifier verifier = new LibIDStandInVerifier(platformId);
+        StubPlatformVerifier verifier = new StubPlatformVerifier(platformId, 0);
         libidVerifiers[platformId] = verifier;
-        try libidRegistry.rulesOf(platformId) {}
-        catch {
-            vm.prank(libidRegistry.owner());
-            libidRegistry.setPlatform(platformId, HandleVectors.rulesFor(platformId));
-        }
         vm.prank(libidProofs.owner());
         libidProofs.setVerifier(platformId, LIBID_STAND_IN_VERSION, IPlatformVerifier(address(verifier)));
     }
@@ -119,7 +115,9 @@ abstract contract LibIDTestBase is Test {
     }
 
     /// @notice Bind a handle to `holder` as a proof with this `observedAt`
-    ///         would, publishing it if `publish` is set.
+    ///         would, publishing it if `publish` is set. The nodes are the
+    ///         ones a circuit outputs: `libidIdNode(platformId, id)` and the
+    ///         registry's `handleNodeOf(platformId, handle)`.
     /// @dev The registry refuses a proof no newer than the last one of the
     ///      same handle or id.
     function bindHandle(
@@ -130,15 +128,28 @@ abstract contract LibIDTestBase is Test {
         uint64 observedAt,
         bool publish
     ) internal libidKeepsCallers {
-        LibIDStandInVerifier verifier = libidVerifiers[platformId];
+        StubPlatformVerifier verifier = libidVerifiers[platformId];
         require(address(verifier) != address(0), "LibIDTestBase: platform not added");
+        (, bytes32 handleNode) = HandleNode.nodeOf(CeremonyProfile.handleTag(platformId), handle);
+        verifier.setNodes(libidIdNode(platformId, id), handleNode);
+        verifier.setObservedAt(observedAt);
         bytes memory payload = abi.encode(
-            LibIDStandInVerifier.Binding({
-                holder: holder, id: id, handle: handle, observedAt: observedAt, nonce: ++libidNonce
+            StubPlatformVerifier.StubPayload({
+                ceremonyVersion: CeremonyProfile.LAUNCH_VERSION,
+                operationDomain: libidRegistry.OPERATION_DOMAIN(),
+                authorizationNonce: bytes32(++libidNonce),
+                transactionData: abi.encode(holder, uint256(0), address(0))
             })
         );
         vm.prank(holder);
-        libidRegistry.bind(platformId, LIBID_STAND_IN_VERSION, payload, publish);
+        if (publish) libidRegistry.bind(platformId, LIBID_STAND_IN_VERSION, payload, handle);
+        else libidRegistry.bindPrivately(platformId, LIBID_STAND_IN_VERSION, payload);
+    }
+
+    /// @notice An id's node, `SHA256("libid.<platform>.user-id" || id)`: what
+    ///         `LibID.resolveId` takes.
+    function libidIdNode(bytes32 platformId, string memory id) internal pure returns (bytes32) {
+        return HandleNode.node(CeremonyProfile.userIdTag(platformId), id);
     }
 
     /// @notice How old a platform's proof made now reads, with the notary's or
@@ -195,8 +206,17 @@ abstract contract LibIDTestBase is Test {
 
     /// @dev An ERC-1967 proxy for `implementation` at `at`, with empty storage.
     function _libidProxyAt(address at, address implementation) private {
-        ERC1967Proxy template = new ERC1967Proxy(implementation, "");
+        LibIDProxyTemplate template = new LibIDProxyTemplate(implementation);
         vm.etch(at, address(template).code);
         vm.store(at, ERC1967Utils.IMPLEMENTATION_SLOT, bytes32(uint256(uint160(implementation))));
+    }
+}
+
+/// @dev An ERC-1967 proxy built with no initializer call, for its code alone.
+contract LibIDProxyTemplate is ERC1967Proxy {
+    constructor(address implementation) ERC1967Proxy(implementation, "") {}
+
+    function _unsafeAllowUninitialized() internal pure override returns (bool) {
+        return true;
     }
 }
