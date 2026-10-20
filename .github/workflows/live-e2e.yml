@@ -198,3 +198,68 @@ jobs:
             ${{ runner.temp }}/stack-scanned.log
           retention-days: 14
           if-no-files-found: ignore
+
+  # The Google ceremony on a self-hosted runner (label libid-google), for a
+  # runner on a machine whose address Google accepts. Opt-in: it runs only
+  # while the repository variable LIBID_GOOGLE_RUNNER is `self-hosted`, since a
+  # job for a missing runner would sit queued. A fork's pull request never
+  # reaches it.
+  google-self-hosted:
+    name: Google ceremony on a self-hosted runner (live)
+    if: >-
+      vars.LIBID_GOOGLE_RUNNER == 'self-hosted' &&
+      (github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'))
+    runs-on: [self-hosted, libid-google]
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      LIBID_REQUIRE_LIVE: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-ts
+
+      - name: Install Chromium
+        run: pnpm -C ts --filter @libid/ceremony-live exec playwright install --with-deps chromium
+
+      - name: Show the address Google will see
+        run: echo "Google sees $(curl -fs --max-time 10 https://api.ipify.org)"
+
+      - name: Prove a Google identity end to end
+        id: test
+        timeout-minutes: 20
+        env:
+          LIBID_LIVE_PLATFORMS: google
+          LIBID_STACK_LOGS: ${{ runner.temp }}/stack.log
+          GOOGLE_TEST_ALICE_EMAIL: ${{ secrets.GOOGLE_TEST_ALICE_EMAIL }}
+          GOOGLE_TEST_ALICE_COOKIES: ${{ secrets.GOOGLE_TEST_ALICE_COOKIES }}
+        run: pnpm -C ts/apps/ceremony-live test:live
+
+      - name: Check the failure output for secrets
+        id: scan
+        if: ${{ !cancelled() && (steps.test.outcome == 'failure' || steps.test.outcome == 'cancelled') }}
+        env:
+          LIBID_REQUIRE_LIVE: ""
+          GOOGLE_TEST_ALICE_COOKIES: ${{ secrets.GOOGLE_TEST_ALICE_COOKIES }}
+        run: |
+          docker compose ls -q --all --filter name=libid-ceremony-live |
+            xargs -r -I{} docker compose -p {} down --volumes
+          if [ -f "$RUNNER_TEMP/stack.log" ]; then cp "$RUNNER_TEMP/stack.log" "$RUNNER_TEMP/stack-scanned.log"; fi
+          node ts/apps/ceremony-live/e2e/scan-secrets.ts ts/apps/ceremony-live/test-results "$RUNNER_TEMP/stack-scanned.log"
+
+      - name: Keep the screenshots and container logs
+        if: ${{ !cancelled() && steps.scan.outcome == 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: live-e2e-google-self-hosted
+          path: |
+            ts/apps/ceremony-live/test-results/**/*.png
+            ts/apps/ceremony-live/test-results/**/*.md
+            ${{ runner.temp }}/stack-scanned.log
+          retention-days: 14
+          if-no-files-found: ignore
