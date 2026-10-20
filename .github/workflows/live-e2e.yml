@@ -118,12 +118,17 @@ jobs:
 
   # Google challenges a saved session arriving from a runner's address, and not
   # from grndd-testnet's NAT address. This job routes the test browser through
-  # the Squid proxy in that cluster: an OIDC role that only main's workflows
-  # assume, allowed to port-forward to the proxy and nothing else
+  # the Squid proxy in that cluster: an OIDC role that this workflow assumes on
+  # main and on this repository's pull requests, allowed to port-forward to the
+  # proxy and nothing else
   # (grndd-systems/deployment, terraform/envs/grndd-testnet/libid-live-e2e.tf).
   google:
     name: Google ceremony through grndd-testnet (live)
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    # A pull request from a fork or from Dependabot gets no OIDC token.
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
