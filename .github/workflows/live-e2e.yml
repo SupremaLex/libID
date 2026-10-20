@@ -151,7 +151,7 @@ jobs:
       - name: Reach the Google proxy in grndd-testnet
         run: |
           aws eks update-kubeconfig --name grndd-testnet --region eu-central-1
-          kubectl -n libid-scratch port-forward svc/squid 3128:3128 >"$RUNNER_TEMP/port-forward.log" 2>&1 &
+          kubectl -n libid port-forward svc/google-proxy 3128:3128 >"$RUNNER_TEMP/port-forward.log" 2>&1 &
           for _ in $(seq 1 30); do
             ip=$(curl -fs --max-time 5 -x http://127.0.0.1:3128 https://api.ipify.org) && break
             sleep 2
