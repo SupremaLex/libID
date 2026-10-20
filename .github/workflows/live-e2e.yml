@@ -124,11 +124,13 @@ jobs:
   # (grndd-systems/deployment, terraform/envs/grndd-testnet/libid-live-e2e.tf).
   google:
     name: Google ceremony through grndd-testnet (live)
-    # A pull request from a fork or from Dependabot gets no OIDC token.
+    # Runs while the repository variable LIBID_GOOGLE_RUNNER is `cluster`. A
+    # pull request from a fork or from Dependabot gets no OIDC token.
     if: >-
-      github.event_name != 'pull_request' ||
+      vars.LIBID_GOOGLE_RUNNER == 'cluster' &&
+      (github.event_name != 'pull_request' ||
       (github.event.pull_request.head.repo.full_name == github.repository &&
-      github.actor != 'dependabot[bot]')
+      github.actor != 'dependabot[bot]'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
