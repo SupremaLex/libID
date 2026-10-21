@@ -204,15 +204,14 @@ jobs:
   # The Google ceremony on a self-hosted runner (label libid-google), for a
   # runner on a machine whose address Google accepts. Opt-in: it runs only
   # while the repository variable LIBID_GOOGLE_RUNNER is `self-hosted`, since a
-  # job for a missing runner would sit queued. A fork's pull request never
-  # reaches it.
+  # job for a missing runner would sit queued. It never runs for a pull
+  # request: only a manual dispatch, which needs write access, or the
+  # schedule, which runs main.
   google-self-hosted:
     name: Google ceremony on a self-hosted runner (live)
     if: >-
       vars.LIBID_GOOGLE_RUNNER == 'self-hosted' &&
-      (github.event_name != 'pull_request' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
-      github.actor != 'dependabot[bot]'))
+      (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
     runs-on: [self-hosted, libid-google]
     timeout-minutes: 30
     permissions:
