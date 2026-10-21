@@ -118,19 +118,17 @@ jobs:
 
   # Google challenges a saved session arriving from a runner's address, and not
   # from grndd-testnet's NAT address. This job routes the test browser through
-  # the Squid proxy in that cluster: an OIDC role that this workflow assumes on
-  # main and on this repository's pull requests, allowed to port-forward to the
-  # proxy and nothing else
+  # the Squid proxy in that cluster: an OIDC role that only this workflow on
+  # main assumes, allowed to port-forward to the proxy in namespace libid-e2e
   # (grndd-systems/deployment, terraform/envs/grndd-testnet/libid-live-e2e.tf).
   google:
     name: Google ceremony through grndd-testnet (live)
-    # Runs while the repository variable LIBID_GOOGLE_RUNNER is `cluster`. A
-    # pull request from a fork or from Dependabot gets no OIDC token.
+    # Runs while the repository variable LIBID_GOOGLE_RUNNER is `cluster`, and
+    # only on main: the role trusts nothing else.
     if: >-
       vars.LIBID_GOOGLE_RUNNER == 'cluster' &&
-      (github.event_name != 'pull_request' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
-      github.actor != 'dependabot[bot]'))
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -158,7 +156,7 @@ jobs:
       - name: Reach the Google proxy in grndd-testnet
         run: |
           aws eks update-kubeconfig --name grndd-testnet --region eu-central-1
-          kubectl -n libid port-forward svc/google-proxy 3128:3128 >"$RUNNER_TEMP/port-forward.log" 2>&1 &
+          kubectl -n libid-e2e port-forward svc/google-proxy 3128:3128 >"$RUNNER_TEMP/port-forward.log" 2>&1 &
           for _ in $(seq 1 30); do
             ip=$(curl -fs --max-time 5 -x http://127.0.0.1:3128 https://api.ipify.org) && break
             sleep 2
